@@ -208,7 +208,7 @@ install_tools() {
     show_progress "Installing python3-venv and setting up virtual environment"
 
     # Create virtual environment
-    python3 -m venv env
+    python3.10 -m venv env
 
     # Upgrade pip in virtual environment
     sudo pip install --upgrade pip 
@@ -381,14 +381,14 @@ sleep 3
 
     # Install pip for Python 3.12
     curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-    python3.12 get-pip.py
+    python3.10 get-pip.py
 
     # Install pipx and ensure it's in the PATH
     pip install pipx==1.7.1 --break-system-packages --root-user-action=ignore
     pipx ensurepath
 
     # Verify Python, pip, and pipx installations
-    python3 --version
+    python3.10 --version
     pip --version
     pipx --version
     sudo pip install structlog requests
@@ -984,7 +984,7 @@ run_step_3() {
     elif [[ "$user_choice" == "N" ]]; then
         # Step 1: Passive FUZZ domains with wordlist
         show_progress "Passive FUZZ domains with wordlist"
-        dnsbruter -d "$domain_name" -w subs-dnsbruter-small.txt -c 150 -wt 80 -rt 500 -wd -ws wild.txt -o output-dnsbruter.txt || handle_error "dnsbruter"
+        dnsbruter -d "$domain_name" -w subs-dnsbruter-small.txt -c 150 -wt 80 -rt 500 -wd -ws wild.txt --override -o output-dnsbruter.txt || handle_error "dnsbruter"
         sleep 5
 
         # Step 2: Active brute crawling domains
@@ -1710,7 +1710,7 @@ fi
 # Step 3: Checking page reflection on the URLs
 if [ -f "reflection.py" ]; then
     echo -e "${BOLD_WHITE}Checking page reflection on the URLs with command: python3 reflection.py ${domain_name}-query.txt --threads 2${NC}"
-    sudo python3 reflection.py "${domain_name}-query.txt" --threads 2 || handle_error "reflection.py execution"
+    sudo python3.10 reflection.py "${domain_name}-query.txt" --threads 2 || handle_error "reflection.py execution"
     sleep 5
 
     # Check if xss.txt is created after reflection.py
@@ -1761,7 +1761,7 @@ if [ -f "reflection.py" ]; then
             echo -e "${BOLD_WHITE}Filtered Final URLs for XSS Testing: ${RED}${total_urls}${NC}"
 
             # Automatically run the xss0r command after reflection step
-            ./xss0r --get --urls xss-urls.txt --payloads payloads.txt --shuffle --threads 10 --path || handle_error "Launching xss0r Tool"
+            ./xss0r-crack --get --urls xss-urls.txt --payloads payloads.txt --shuffle --threads 3 --path || handle_error "Launching xss0r Tool"
         fi
     else
         echo -e "${RED}xss.txt not found. No reflective URLs identified.${NC}"
@@ -1780,7 +1780,7 @@ run_step_8() {
     # Check if xss0r and xss-urls.txt files exist
     if [ -f "xss0r" ] && [ -f "xss-urls.txt" ]; then
         show_progress "Running xss0r for XSS vulnerabilities"
-        ./xss0r --get --urls xss-urls.txt --payloads payloads.txt --shuffle --threads 10 --path
+        ./xss0r-crack --get --urls xss-urls.txt --payloads payloads.txt --shuffle --threads 3 --path
         if [[ $? -ne 0 ]]; then  # Check if xss0r command failed
             echo -e "${RED}The xss0r Tool encountered an error during execution.${NC}"
             exit 1
@@ -1907,7 +1907,7 @@ run_path_based_xss() {
 
     # Step 9: Running Python script for reflection checks
     show_progress "Running Python script for reflection checks on filtered URLs..."
-    sudo python3 path-reflection.py path-ready.txt --threads 2
+    sudo python3.10 path-reflection.py path-ready.txt --threads 2
 
     # Step 9.1: Checking if the new file is generated
     if [ -f path-xss-urls.txt ]; then
@@ -1935,7 +1935,7 @@ run_path_based_xss() {
 
     # Step 12: Launch the xss0r tool for path-based XSS testing
     echo -e "${BOLD_BLUE}Launching the xss0r tool on path-xss-urls.txt...${NC}"
-    ./xss0r --get --urls path-xss-urls.txt --payloads payloads.txt --shuffle --threads 10 --path
+    ./xss0r-crack --get --urls path-xss-urls.txt --payloads payloads.txt --shuffle --threads 3 --path
     if [[ $? -ne 0 ]]; then
         echo -e "${RED}The xss0r tool encountered an error during execution.${NC}"
         exit 1
